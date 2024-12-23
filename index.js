@@ -8,12 +8,12 @@ const app = express();
 
 const port = process.env.PORT || 3000;
 
-app.use(cors({
-  origin: [
-      'http://localhost:5173',
-  ],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // mongo setup
@@ -48,9 +48,29 @@ app.listen(port, () => {
 
 // mongodb stuff
 
-app.post("/newuser", async (req, res)=>{
+// login/get user
+
+app.get("/user/:id", async (req, res) => {
+  const query = { uid: req.params.id };
+  const user = await userCol.findOne(query);
+  res.send(user);
+});
+
+// signup call
+
+app.post("/newuser", async (req, res) => {
   const newUser = req.body;
   console.log(`creating new user with data`, newUser);
   const result = await userCol.insertOne(newUser);
   res.send(result);
-})
+});
+
+app.put("/googleuser", async (req, res) => {
+  const filter = { uid: req.body.uid };
+  const updatedUser = { $set: req.body };
+  const options = { upsert: true };
+  console.log(`new google login happens`);
+  const result = await userCol.updateOne(filter, updatedUser, options);
+  const user = await userCol.findOne(filter);
+  res.send({result, user});
+});
