@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 require("dotenv").config();
@@ -65,6 +67,8 @@ app.post("/newuser", async (req, res) => {
   res.send(result);
 });
 
+// google login handler
+
 app.put("/googleuser", async (req, res) => {
   const filter = { uid: req.body.uid };
   const updatedUser = { $set: req.body };
@@ -72,5 +76,29 @@ app.put("/googleuser", async (req, res) => {
   console.log(`new google login happens`);
   const result = await userCol.updateOne(filter, updatedUser, options);
   const user = await userCol.findOne(filter);
-  res.send({result, user});
+  res.send({ result, user });
+});
+
+// json web token handling
+
+app.post("/jwt", async (req, res) => {
+  const user = req.body;
+  const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: "5h" });
+  const userData = await userCol.findOne(user);
+  res
+    .cookie(`b10a11token`, token, { httpOnly: true, secure: false })
+    .send(userData);
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie(`b10a11token`, { httpOnly: true, secure: false }).send({success: true});
+});
+
+// blog calls
+
+app.post("/newblog", async (req, res) => {
+  const newBlog = req.body;
+  console.log(`adding new blog with data`, newBlog.title);
+  const result = await blogCol.insertOne(newBlog);
+  res.send(result);
 });
