@@ -96,6 +96,12 @@ app.post("/logout", (req, res) => {
 
 // blog calls
 
+app.get("/blogs", async (req, res)=>{
+  const cursor = blogCol.find();
+  const result = await cursor.toArray();
+  res.send(result);
+})
+
 app.post("/newblog", async (req, res) => {
   const newBlog = req.body;
   console.log(`adding new blog with data`, newBlog.title);
