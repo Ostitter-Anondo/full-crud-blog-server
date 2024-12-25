@@ -17,6 +17,21 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
+
+const verifyToken = (req, res, next) => {
+  const token = req.cookies.b10a11token;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  jwt.verify(token, process.env.TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 // mongo setup
 
@@ -25,7 +40,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
+    strict: false,
     deprecationErrors: true,
   },
 });
@@ -98,20 +113,29 @@ app.post("/jwt", async (req, res) => {
   const userData = await userCol.findOne(user);
   const wishlist = await wishlistCol.findOne(user);
   res
-    .cookie(`b10a11token`, token, { httpOnly: true, secure: false })
+    .cookie(`b10a11token`, token, { httpOnly: true, secure: false, sameSite:'none' })
     .send({ userData, wishlist });
 });
 
 app.post("/logout", (req, res) => {
   res
-    .clearCookie(`b10a11token`, { httpOnly: true, secure: false })
+    .clearCookie(`b10a11token`, { httpOnly: true, secure: false, sameSite:'none' })
     .send({ success: true });
+});
+
+app.get("/jwtverify", verifyToken, async (req, res) => {
+  if (req.user.uid != req.query.uid) {
+    return res.status(403).send({ message: "forbidden" });
+  }
+
+  res.send("verification success");
 });
 
 // blog calls
 
 app.get("/blogs", async (req, res) => {
-  const cursor = blogCol.find();
+  const options = { projection: { blog: 0 } };
+  const cursor = blogCol.find({}, options);
   const result = await cursor.toArray();
   res.send(result);
 });
@@ -119,6 +143,34 @@ app.get("/blogs", async (req, res) => {
 app.get("/blog/:id", async (req, res) => {
   const query = { _id: new ObjectId(req.params.id) };
   const result = await blogCol.findOne(query);
+  res.send(result);
+});
+
+app.get("/recentblogs", async (req, res) => {
+  const query = {};
+  const options = { sort: { time: -1 } };
+  const cursor = blogCol.find(query, options).limit(6);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
+app.get("/filterblogs", async (req, res) => {
+  const searchQuery = req.query;
+  let query = {};
+  searchQuery.search === ""
+    ? (query = {})
+    : (query.$text = { $search: `\"${searchQuery.search}\"` });
+  searchQuery.category === "All"
+    ? console.log("No Cat")
+    : (query.category = searchQuery.category);
+  console.log(query);
+  await blogCol.createIndex({
+    blog: "text",
+    summary: "text",
+    title: "text",
+  });
+  const cursor = blogCol.find(query);
+  const result = await cursor.toArray();
   res.send(result);
 });
 
@@ -133,12 +185,36 @@ app.put("/editblog/:id", async (req, res) => {
   const filter = { _id: new ObjectId(req.params.id) };
   const options = { upsert: false };
   const updatedBlog = { $set: req.body };
-  const result =  await blogCol.updateOne(filter, updatedBlog, options);
-  console.log(result)
+  const result = await blogCol.updateOne(filter, updatedBlog, options);
+  console.log(result);
+  res.send(result);
+});
+
+app.get("/featured", async (req, res) => {
+  const query = {};
+  const options = {
+    sort: { size: -1 },
+    projection: { blog: 0, summary: 0 },
+  };
+  const cursor = blogCol.find(query, options).limit(10);
+  const result = await cursor.toArray();
   res.send(result);
 });
 
 // wishlist codes
+
+app.get("/getwishlist", verifyToken, async (req, res) => {
+  if (req.query.wishlist) {
+    const query = req.query.wishlist
+      .split(",")
+      .map((data) => ObjectId.createFromHexString(data));
+    const cursor = blogCol.find({ _id: { $in: query } });
+    const result = await cursor.toArray();
+    res.send(result);
+  } else {
+    res.send([]);
+  }
+});
 
 app.post("/newwishlist", async (req, res) => {
   const filter = { uid: req.body.uid };
