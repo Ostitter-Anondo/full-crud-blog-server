@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 require("dotenv").config();
 
@@ -116,10 +116,25 @@ app.get("/blogs", async (req, res) => {
   res.send(result);
 });
 
+app.get("/blog/:id", async (req, res) => {
+  const query = { _id: new ObjectId(req.params.id) };
+  const result = await blogCol.findOne(query);
+  res.send(result);
+});
+
 app.post("/newblog", async (req, res) => {
   const newBlog = req.body;
   console.log(`adding new blog with data`, newBlog.title);
   const result = await blogCol.insertOne(newBlog);
+  res.send(result);
+});
+
+app.put("/editblog/:id", async (req, res) => {
+  const filter = { _id: new ObjectId(req.params.id) };
+  const options = { upsert: false };
+  const updatedBlog = { $set: req.body };
+  const result =  await blogCol.updateOne(filter, updatedBlog, options);
+  console.log(result)
   res.send(result);
 });
 
@@ -148,5 +163,33 @@ app.put("/addtowishlist", async (req, res) => {
   const options = { upsert: false };
   const result = await wishlistCol.updateOne(filter, updatedWishlist, options);
   const newWishlist = await wishlistCol.findOne(filter);
-  res.send({ result, newWishlist })
+  res.send({ result, newWishlist });
+});
+
+// comment stuff
+
+app.get("/comments/:id", async (req, res) => {
+  const query = { articleId: req.params.id };
+  const options = { sort: { time: -1 } };
+  const cursor = commentCol.find(query, options);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
+app.post("/addcomment", async (req, res) => {
+  const newComment = req.body;
+  const result = await commentCol.insertOne(newComment);
+  const query = { articleId: req.body.articleId };
+  const options = { sort: { time: -1 } };
+  const cursor = commentCol.find(query, options);
+  const comments = await cursor.toArray();
+  console.log(result, comments);
+  res.send({ result, comments });
+});
+
+app.delete("/deletecomment/:id", async (req, res) => {
+  const query = { _id: new ObjectId(req.params.id) };
+  const result = await commentCol.deleteOne(query);
+  console.log(result);
+  res.send(result);
 });
