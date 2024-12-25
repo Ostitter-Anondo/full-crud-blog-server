@@ -105,6 +105,17 @@ app.put("/googleuser", async (req, res) => {
   res.send({ result, user, wishlist });
 });
 
+// update user name/photo
+
+app.put("/updatedata/:id", async (req, res) => {
+  const filter = { uid: req.params.id };
+  const updatedUser = { $set: req.body };
+  const options = { upsert: false };
+  const result = await userCol.updateOne(filter, updatedUser, options);
+  const user = await userCol.findOne(filter);
+  res.send({ result, user });
+});
+
 // json web token handling
 
 app.post("/jwt", async (req, res) => {
@@ -113,13 +124,21 @@ app.post("/jwt", async (req, res) => {
   const userData = await userCol.findOne(user);
   const wishlist = await wishlistCol.findOne(user);
   res
-    .cookie(`b10a11token`, token, { httpOnly: true, secure: false, sameSite:'none' })
+    .cookie(`b10a11token`, token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    })
     .send({ userData, wishlist });
 });
 
 app.post("/logout", (req, res) => {
   res
-    .clearCookie(`b10a11token`, { httpOnly: true, secure: false, sameSite:'none' })
+    .clearCookie(`b10a11token`, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    })
     .send({ success: true });
 });
 
@@ -137,6 +156,23 @@ app.get("/blogs", async (req, res) => {
   const options = { projection: { blog: 0 } };
   const cursor = blogCol.find({}, options);
   const result = await cursor.toArray();
+  res.send(result);
+});
+
+app.get("/myblogs/:id", async (req, res) => {
+  const query = { uid: req.params.id };
+  const options = {
+    projection: { blog: 0, summary: 0 },
+  };
+  const cursor = blogCol.find(query, options);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
+app.delete("/deleteblog/:id", async (req, res) => {
+  const query = { _id: new ObjectId(req.params.id) };
+  const result = await blogCol.deleteOne(query);
+  console.log(result);
   res.send(result);
 });
 
