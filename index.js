@@ -12,7 +12,7 @@ const port = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173","b10a11-ostitter-anondo.web.app","b10a11-ostitter-anondo.firebaseapp.com"],
+    origin: ["http://localhost:5173","https://b10a11-ostitter-anondo.web.app/","https://b10a11-ostitter-anondo.firebaseapp.com/"],
     credentials: true,
   })
 );
