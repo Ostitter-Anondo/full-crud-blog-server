@@ -130,8 +130,8 @@ app.post("/jwt", async (req, res) => {
   res
     .cookie(`b10a11token`, token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     })
     .send({ userData, wishlist });
 });
@@ -140,8 +140,8 @@ app.post("/logout", (req, res) => {
   res
     .clearCookie(`b10a11token`, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     })
     .send({ success: true });
 });
