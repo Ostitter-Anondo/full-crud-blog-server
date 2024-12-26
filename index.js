@@ -12,7 +12,7 @@ const port = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173","b10a11-ostitter-anondo.web.app","b10a11-ostitter-anondo.firebaseapp.com"],
     credentials: true,
   })
 );
@@ -126,8 +126,8 @@ app.post("/jwt", async (req, res) => {
   res
     .cookie(`b10a11token`, token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
     })
     .send({ userData, wishlist });
 });
@@ -136,8 +136,8 @@ app.post("/logout", (req, res) => {
   res
     .clearCookie(`b10a11token`, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
     })
     .send({ success: true });
 });
