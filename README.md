@@ -1,4 +1,3 @@
-# Batch 10 Assignment 11 by Jawad Ibn Mamoon
+# Full Crud Blog Website Server SIde
 
-- this is the server side repo for the assignment
-- assignment category: 05
+- this is the server side repo for the blog website
